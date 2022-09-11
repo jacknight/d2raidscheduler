@@ -4,10 +4,9 @@ import { RaidModelInterface } from "../db/models/RaidModel";
 import client from "./client";
 
 export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
-  const guardiansNeeded = (
-    6 -
-    raidData.raiders.yes.length -
-    raidData.raiders.reserve.length
+  const guardiansNeeded = Math.max(
+    0,
+    6 - raidData.raiders.yes.length - raidData.raiders.reserve.length
   ).toString();
 
   const embed = new MessageEmbed()
