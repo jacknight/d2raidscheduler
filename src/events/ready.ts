@@ -23,6 +23,9 @@ const onReady = async (client: Client) => {
   console.log(
     "Global and guild commands deleted. Registering most recent version."
   );
+
+  await client.guilds.fetch();
+  client.guilds.cache.forEach(async (guild) => await guild.members.fetch());
   await rest.put(Routes.applicationCommands(client.application!.id), {
     body: commandData,
   });
