@@ -2,15 +2,17 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import {
   ButtonInteraction,
   CommandInteraction,
+  Message,
   MessageActionRow,
   MessageButton,
   TextBasedChannel,
+  VoiceChannel,
 } from "discord.js";
 import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
 import RaidModel, { RaidModelInterface } from "../db/models/RaidModel";
 import shortUUID from "short-uuid";
-import { createRaidEmbed } from "../lib/util";
+import { createRaidDescription, createRaidEmbed } from "../lib/util";
 import client from "../lib/client";
 
 export enum Raids {
@@ -139,135 +141,174 @@ const raidCommand: CommandInterface = {
     }),
 
   run: async (interaction: CommandInteraction) => {
-    const msg = await interaction.deferReply({
-      fetchReply: true,
-    });
-    const today = new Date();
+    try {
+      const msg = (await interaction.deferReply({
+        fetchReply: true,
+      })) as Message;
+      const today = new Date();
 
-    const raid = interaction.options.getInteger("name", true);
-    const year = interaction.options.getInteger("year", true);
-    const month = interaction.options.getInteger("month", true) + 1;
-    const day = interaction.options.getInteger("day", true);
-    const hour = interaction.options.getInteger("hour", true);
-    const minute = interaction.options.getInteger("min", true);
-    const zone = interaction.options.getString("timezone", true);
+      const raid = interaction.options.getInteger("name", true);
+      const year = interaction.options.getInteger("year", true);
+      const month = interaction.options.getInteger("month", true) + 1;
+      const day = interaction.options.getInteger("day", true);
+      const hour = interaction.options.getInteger("hour", true);
+      const minute = interaction.options.getInteger("min", true);
+      const zone = interaction.options.getString("timezone", true);
 
-    const raidDate = DateTime.fromObject(
-      { year, month, day, hour, minute },
-      { zone }
-    ).toJSDate();
+      const raidDate = DateTime.fromObject(
+        { year, month, day, hour, minute },
+        { zone }
+      ).toJSDate();
 
-    const raidDateStr = raidDate.toLocaleString("en-us", {
-      dateStyle: "full",
-      timeStyle: "full",
-      timeZone: zone,
-    });
-
-    if (raidDate.toString() === "Invalid Date") {
-      return interaction.editReply({
-        content: "Invalid date.",
+      const raidDateStr = raidDate.toLocaleString("en-us", {
+        dateStyle: "full",
+        timeStyle: "full",
+        timeZone: zone,
       });
-    }
 
-    if (raidDate < new Date()) {
-      return interaction.editReply({
-        content: `Date is in the past: ${raidDateStr}`,
+      if (raidDate.toString() === "Invalid Date") {
+        return interaction.editReply({
+          content: "Invalid date.",
+        });
+      }
+
+      if (raidDate < new Date()) {
+        return interaction.editReply({
+          content: `Date is in the past: ${raidDateStr}`,
+        });
+      }
+
+      const raidData: RaidModelInterface = {
+        id: shortUUID.generate(),
+        date: raidDate,
+        zone,
+        raid,
+        raiders: {
+          yes: [],
+          no: [],
+          maybe: [],
+          reserve: [],
+        },
+        status: "pending",
+        duration: 0,
+        guildId: interaction.guildId!,
+        channelId: interaction.channelId,
+        messageId: msg.id,
+        scheduledEventId: "",
+      };
+
+      const scheduledEvent = await interaction.guild?.scheduledEvents.create({
+        name: `${Raids[raid]} Raid`,
+        entityType: "VOICE",
+        privacyLevel: "GUILD_ONLY",
+        scheduledStartTime: raidDate,
+        description: createRaidDescription(raidData, msg.url),
+        channel: interaction.guild?.channels.cache.find(
+          (channel) => channel.type === "GUILD_VOICE"
+        ) as VoiceChannel,
       });
+
+      raidData.scheduledEventId = scheduledEvent!.id;
+
+      await RaidModel.create(raidData);
+
+      const raidEmbed = createRaidEmbed(raidData);
+
+      const respond = new MessageActionRow().addComponents(
+        new MessageButton()
+          .setCustomId(`${commandName}-${raidData.id}-yes`)
+          .setLabel("I'm in!")
+          .setStyle("SUCCESS"),
+        new MessageButton()
+          .setCustomId(`${commandName}-${raidData.id}-reserve`)
+          .setLabel("Available on reserve.")
+          .setStyle("SECONDARY"),
+        new MessageButton()
+          .setCustomId(`${commandName}-${raidData.id}-maybe`)
+          .setLabel("Maybe")
+          .setStyle("PRIMARY"),
+        new MessageButton()
+          .setCustomId(`${commandName}-${raidData.id}-no`)
+          .setLabel("I'm out.")
+          .setStyle("DANGER")
+      );
+      interaction.editReply({
+        embeds: [raidEmbed],
+        components: [respond],
+      });
+    } catch (e: any) {
+      console.error(e);
     }
-
-    const raidData: RaidModelInterface = {
-      id: shortUUID.generate(),
-      date: raidDate,
-      zone,
-      raid,
-      raiders: {
-        yes: [],
-        no: [],
-        maybe: [],
-        reserve: [],
-      },
-      status: "pending",
-      duration: 0,
-      guildId: interaction.guildId!,
-      channelId: interaction.channelId,
-      messageId: msg.id,
-    };
-
-    await RaidModel.create(raidData);
-
-    const raidEmbed = createRaidEmbed(raidData);
-
-    const respond = new MessageActionRow().addComponents(
-      new MessageButton()
-        .setCustomId(`${commandName}-${raidData.id}-yes`)
-        .setLabel("I'm in!")
-        .setStyle("SUCCESS"),
-      new MessageButton()
-        .setCustomId(`${commandName}-${raidData.id}-reserve`)
-        .setLabel("Available on reserve.")
-        .setStyle("SECONDARY"),
-      new MessageButton()
-        .setCustomId(`${commandName}-${raidData.id}-maybe`)
-        .setLabel("Maybe")
-        .setStyle("PRIMARY"),
-      new MessageButton()
-        .setCustomId(`${commandName}-${raidData.id}-no`)
-        .setLabel("I'm out.")
-        .setStyle("DANGER")
-    );
-    interaction.editReply({ embeds: [raidEmbed], components: [respond] });
   },
 
   handleButton: async (interaction: ButtonInteraction) => {
-    const raidId: string = interaction.customId.split("-")[1];
-    const resp = interaction.customId.split("-")[2] as RaidResponse;
+    try {
+      const raidId: string = interaction.customId.split("-")[1];
+      const resp = interaction.customId.split("-")[2] as RaidResponse;
 
-    // Retrieve raid from database
-    const raidData: RaidModelInterface | null = await RaidModel.findOne({
-      id: raidId,
-    });
-
-    if (raidData) {
-      // First check if they've already hit a button
-      let idx = raidData.raiders.yes.indexOf(interaction.user.id);
-      if (idx >= 0) {
-        raidData.raiders.yes.splice(idx, 1);
-      }
-      idx = raidData.raiders.no.indexOf(interaction.user.id);
-      if (idx >= 0) {
-        raidData.raiders.no.splice(idx, 1);
-      }
-      idx = raidData.raiders.maybe.indexOf(interaction.user.id);
-      if (idx >= 0) {
-        raidData.raiders.maybe.splice(idx, 1);
-      }
-      idx = raidData.raiders.reserve.indexOf(interaction.user.id);
-      if (idx >= 0) {
-        raidData.raiders.reserve.splice(idx, 1);
-      }
-
-      // If they answered 'yes', check if there's any space left on the raid
-      // squad and if not, add them to 'reserve'
-      if (resp === "yes" && raidData.raiders.yes.length >= 6) {
-        raidData.raiders.reserve.push(interaction.user.id);
-      } else {
-        raidData.raiders[resp].push(interaction.user.id);
-      }
-
-      await RaidModel.updateOne({ id: raidId }, raidData);
-
-      const guild = client.guilds.cache.get(raidData.guildId);
-      const channel = guild?.channels.cache.get(
-        raidData.channelId
-      ) as TextBasedChannel;
-      const msg = channel.messages.cache.get(raidData.messageId);
-
-      msg?.edit({ embeds: [createRaidEmbed(raidData)] });
-      return interaction.reply({
-        content: "Your selection has been confirmed!",
-        ephemeral: true,
+      // Retrieve raid from database
+      const raidData: RaidModelInterface | null = await RaidModel.findOne({
+        id: raidId,
       });
-    } else {
+
+      if (raidData) {
+        // First check if they've already hit a button
+        let idx = raidData.raiders.yes.indexOf(interaction.user.id);
+        if (idx >= 0) {
+          raidData.raiders.yes.splice(idx, 1);
+        }
+        idx = raidData.raiders.no.indexOf(interaction.user.id);
+        if (idx >= 0) {
+          raidData.raiders.no.splice(idx, 1);
+        }
+        idx = raidData.raiders.maybe.indexOf(interaction.user.id);
+        if (idx >= 0) {
+          raidData.raiders.maybe.splice(idx, 1);
+        }
+        idx = raidData.raiders.reserve.indexOf(interaction.user.id);
+        if (idx >= 0) {
+          raidData.raiders.reserve.splice(idx, 1);
+        }
+
+        // If they answered 'yes', check if there's any space left on the raid
+        // squad and if not, add them to 'reserve'
+        if (resp === "yes" && raidData.raiders.yes.length >= 6) {
+          raidData.raiders.reserve.push(interaction.user.id);
+        } else {
+          raidData.raiders[resp].push(interaction.user.id);
+        }
+
+        await RaidModel.updateOne({ id: raidId }, raidData);
+
+        const guild = client.guilds.cache.get(raidData.guildId);
+        const channel = guild?.channels.cache.get(
+          raidData.channelId
+        ) as TextBasedChannel;
+        const msg = channel.messages.cache.get(raidData.messageId);
+
+        msg?.edit({ embeds: [createRaidEmbed(raidData)] });
+
+        const scheduledEvents = await guild?.scheduledEvents.fetch();
+        const scheduledEvent = scheduledEvents?.get(raidData.scheduledEventId);
+
+        if (scheduledEvent) {
+          scheduledEvent.edit({
+            description: createRaidDescription(raidData, msg!.url),
+          });
+        }
+
+        return interaction.reply({
+          content: "Your selection has been confirmed!",
+          ephemeral: true,
+        });
+      } else {
+        return interaction.reply({
+          content: "Sorry, there was some problem.",
+          ephemeral: true,
+        });
+      }
+    } catch (e: any) {
+      console.error(e);
       return interaction.reply({
         content: "Sorry, there was some problem.",
         ephemeral: true,

@@ -30,7 +30,7 @@ export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
       {
         name: "Guardians Needed",
         value: guardiansNeeded,
-        inline: true,
+        inline: false,
       }
     )
     .addFields(
@@ -76,4 +76,16 @@ export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
     );
 
   return embed;
+};
+
+export const createRaidDescription = (
+  raidData: RaidModelInterface,
+  url: string
+) => {
+  return `CONFIRMED: **${raidData.raiders.yes.length}** / RESERVES: **${
+    raidData.raiders.reserve.length
+  }** / MAYBES: **${raidData.raiders.maybe.length}**\nNEEDED: **${Math.max(
+    0,
+    6 - (raidData.raiders.yes.length + raidData.raiders.reserve.length)
+  )}**\nRegister here: ${url}`;
 };

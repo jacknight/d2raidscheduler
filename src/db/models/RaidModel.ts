@@ -16,6 +16,7 @@ export interface RaidModelInterface {
   guildId: string;
   channelId: string;
   messageId: string;
+  scheduledEventId: string;
 }
 
 export const RaidSchema = new Schema({
@@ -34,6 +35,7 @@ export const RaidSchema = new Schema({
   guildId: String,
   channelId: String,
   messageId: String,
+  scheduledEventId: String,
 });
 
 export default model<RaidModelInterface>("raid", RaidSchema);

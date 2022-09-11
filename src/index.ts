@@ -21,3 +21,7 @@ mongoose
       onInteraction(interaction);
     });
   });
+
+process.on("unhandledRejection", (rejection) => {
+  console.error(rejection);
+});
