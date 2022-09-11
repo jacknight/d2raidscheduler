@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "tsc",
-    "start": "node -r dotenv/config ./prod/index.js",
+    "start": "node ./prod/index.js",
     "cold": "yarn build && yarn start"
   },
   "dependencies": {
