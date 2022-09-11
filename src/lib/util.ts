@@ -28,11 +28,6 @@ export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
         inline: true,
       },
       {
-        name: "Status",
-        value: raidData.status,
-        inline: true,
-      },
-      {
         name: "Guardians Needed",
         value: guardiansNeeded,
         inline: true,

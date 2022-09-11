@@ -14,7 +14,7 @@ const onInteraction = (interaction: Interaction) => {
       if (command.data.name === interaction.customId.split("-")[0]) {
         command.handleButton
           ? command.handleButton(interaction)
-          : console.log(
+          : console.error(
               "Handle button not defined for button interaction: ",
               interaction
             );

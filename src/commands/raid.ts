@@ -22,6 +22,7 @@ export enum Raids {
   "Deep Stone Crypt",
   "Vault of Glass",
   "Vow of the Disciple",
+  "Kings Fall",
 }
 
 export type RaidResponse = "yes" | "no" | "maybe" | "reserve";
@@ -69,6 +70,10 @@ const raidCommand: CommandInterface = {
           {
             name: "Vow of the Disciple",
             value: Raids["Vow of the Disciple"],
+          },
+          {
+            name: "Kings Fall",
+            value: Raids["Kings Fall"],
           }
         );
     })
@@ -78,8 +83,14 @@ const raidCommand: CommandInterface = {
         .setDescription("Full year")
         .setRequired(true)
         .addChoices(
-          { name: "2022", value: 2022 },
-          { name: "2023", value: 2023 }
+          {
+            name: new Date().toISOString().slice(0, 4),
+            value: Number(new Date().toISOString().slice(0, 4)),
+          },
+          {
+            name: (Number(new Date().toISOString().slice(0, 4)) + 1).toString(),
+            value: Number(new Date().toISOString().slice(0, 4)) + 1,
+          }
         );
     })
     .addIntegerOption((option) => {
@@ -120,10 +131,10 @@ const raidCommand: CommandInterface = {
         .setDescription("Timezone")
         .setRequired(true)
         .addChoices(
-          { name: "America/New_York", value: "America/New_York" },
-          { name: "America/Chicago", value: "America/Chicago" },
-          { name: "America/Denver", value: "America/Denver" },
-          { name: "America/Los_Angeles", value: "America/Los_Angeles" }
+          { name: "US East", value: "America/New_York" },
+          { name: "US Central", value: "America/Chicago" },
+          { name: "US Mountain", value: "America/Denver" },
+          { name: "US West", value: "America/Los_Angeles" }
         );
     }),
 
@@ -193,15 +204,15 @@ const raidCommand: CommandInterface = {
         .setStyle("SUCCESS"),
       new MessageButton()
         .setCustomId(`${commandName}-${raidData.id}-reserve`)
-        .setLabel("I'll be available on reserve.")
+        .setLabel("Available on reserve.")
         .setStyle("SECONDARY"),
       new MessageButton()
         .setCustomId(`${commandName}-${raidData.id}-maybe`)
-        .setLabel("Maybe...")
+        .setLabel("Maybe")
         .setStyle("PRIMARY"),
       new MessageButton()
         .setCustomId(`${commandName}-${raidData.id}-no`)
-        .setLabel("I'm out, sorry.")
+        .setLabel("I'm out.")
         .setStyle("DANGER")
     );
     interaction.editReply({ embeds: [raidEmbed], components: [respond] });
