@@ -246,6 +246,8 @@ const raidCommand: CommandInterface = {
       const raidId: string = interaction.customId.split("-")[1];
       const resp = interaction.customId.split("-")[2] as RaidResponse;
 
+      await interaction.deferReply({ ephemeral: true, fetchReply: true });
+
       // Retrieve raid from database
       const raidData: RaidModelInterface | null = await RaidModel.findOne({
         id: raidId,
@@ -297,21 +299,19 @@ const raidCommand: CommandInterface = {
           });
         }
 
-        return interaction.reply({
+        return interaction.editReply({
           content: "Your selection has been confirmed!",
-          ephemeral: true,
         });
       } else {
-        return interaction.reply({
+        console.error("No raid data? ", raidData, raidId);
+        return interaction.editReply({
           content: "Sorry, there was some problem.",
-          ephemeral: true,
         });
       }
     } catch (e: any) {
-      console.error(e);
-      return interaction.reply({
+      console.error("Error on button handling: ", e);
+      return interaction.editReply({
         content: "Sorry, there was some problem.",
-        ephemeral: true,
       });
     }
   },

@@ -1,6 +1,6 @@
 // Require the necessary discord.js classes
-import { Interaction } from "discord.js";
 import "dotenv/config";
+import { Interaction } from "discord.js";
 import mongoose from "mongoose";
 import onInteraction from "./events/interaction";
 import onReady from "./events/ready";
