@@ -1,9 +1,13 @@
-import { MessageEmbed } from "discord.js";
+import { channel } from "diagnostics_channel";
+import { Client, Message, MessageEmbed, TextBasedChannel } from "discord.js";
+import { GuildScheduledEventStatuses } from "discord.js/typings/enums";
 import { Dungeons } from "../commands/dungeon";
 import { Raids } from "../commands/raid";
-import { DungeonModelInterface } from "../db/models/DungeonModel";
-import { RaidModelInterface } from "../db/models/RaidModel";
+import DungeonModel, { DungeonModelInterface } from "../db/models/DungeonModel";
+import RaidModel, { RaidModelInterface } from "../db/models/RaidModel";
 import client from "./client";
+
+const timeouts = [];
 
 export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
   const guardiansNeeded = Math.max(
@@ -177,4 +181,81 @@ export const createDungeonDescription = (
     0,
     3 - (dungeonData.players.yes.length + dungeonData.players.reserve.length)
   )}**\nRegister here: ${url}`;
+};
+
+export const scheduleEventTimeouts = async (
+  id: string,
+  type: "raid" | "dungeon"
+) => {
+  const data: (RaidModelInterface & DungeonModelInterface) | null =
+    type === "raid"
+      ? await RaidModel.findOne({ id })
+      : await DungeonModel.findOne({ id });
+
+  if (!data) return;
+
+  const fifteenMinBefore =
+    data.date.valueOf() - Date.now().valueOf() - 15 * 60 * 1000;
+
+  (function (id, type) {
+    if (fifteenMinBefore < 0) return;
+    setTimeout(
+      async () => {
+        const data: (RaidModelInterface & DungeonModelInterface) | null =
+          type === "raid"
+            ? await RaidModel.findOne({ id })
+            : await DungeonModel.findOne({ id });
+
+        if (!data) return;
+
+        const { date, guildId } = data;
+        const players = type === "raid" ? data.raiders : data.players;
+        const name =
+          type === "raid" ? Raids[data.raid] : Dungeons[data.dungeon];
+
+        let content = "Hey";
+
+        const guild = client.guilds.cache.get(data.guildId);
+        const channel = guild?.channels.cache.get(
+          data.channelId
+        ) as TextBasedChannel;
+        const message = await (
+          await channel.messages.fetch()
+        ).find((m) => m.id === data.messageId);
+        await Promise.all(
+          players.yes.map(async (player) => {
+            const user = guild?.members.cache.get(player);
+            if (user) {
+              content = `${content}, ${user}`;
+            }
+          })
+        );
+        content = `${content}: it's almost time to run ${name}!\n${
+          message?.url || ""
+        }`;
+
+        await message?.reply({ content });
+      },
+      fifteenMinBefore // 15 min before
+    );
+  })(id, type);
+
+  (function (id, type) {
+    setTimeout(async () => {
+      const data: (RaidModelInterface & DungeonModelInterface) | null =
+        type === "raid"
+          ? await RaidModel.findOne({ id })
+          : await DungeonModel.findOne({ id });
+
+      if (!data) return;
+
+      const guild = client.guilds.cache.get(data.guildId);
+      const scheduledEvent = guild?.scheduledEvents.cache.get(
+        data.scheduledEventId
+      );
+      await scheduledEvent?.edit({
+        status: GuildScheduledEventStatuses.ACTIVE,
+      });
+    }, data.date.valueOf() - Date.now().valueOf());
+  })(id, type);
 };

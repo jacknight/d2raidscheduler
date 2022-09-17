@@ -12,7 +12,11 @@ import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
 import RaidModel, { RaidModelInterface } from "../db/models/RaidModel";
 import shortUUID from "short-uuid";
-import { createRaidDescription, createRaidEmbed } from "../lib/util";
+import {
+  createRaidDescription,
+  createRaidEmbed,
+  scheduleEventTimeouts,
+} from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
 
@@ -210,6 +214,8 @@ const raidCommand: CommandInterface = {
       raidData.scheduledEventId = scheduledEvent!.id;
 
       await RaidModel.create(raidData);
+
+      scheduleEventTimeouts(raidData.id, "raid");
 
       const raidEmbed = createRaidEmbed(raidData);
 

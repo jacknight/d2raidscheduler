@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import {
   ButtonInteraction,
+  Client,
   CommandInteraction,
   Message,
   MessageActionRow,
@@ -11,7 +12,11 @@ import {
 import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
 import shortUUID from "short-uuid";
-import { createDungeonDescription, createDungeonEmbed } from "../lib/util";
+import {
+  createDungeonDescription,
+  createDungeonEmbed,
+  scheduleEventTimeouts,
+} from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
 import DungeonModel, { DungeonModelInterface } from "../db/models/DungeonModel";
@@ -190,6 +195,8 @@ const dungeonCommand: CommandInterface = {
       dungeonData.scheduledEventId = scheduledEvent!.id;
 
       await DungeonModel.create(dungeonData);
+
+      scheduleEventTimeouts(dungeonData.id, "dungeon");
 
       const dungeonEmbed = createDungeonEmbed(dungeonData);
 
