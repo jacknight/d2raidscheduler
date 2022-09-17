@@ -37,23 +37,23 @@ const dungeonCommand: CommandInterface = {
         .setRequired(true)
         .addChoices(
           {
-            name: "Leviathan",
+            name: "Shattered Throne",
             value: Dungeons["Shattered Throne"],
           },
           {
-            name: "Last Wish",
+            name: "Prophecy",
             value: Dungeons["Prophecy"],
           },
           {
-            name: "Scourge of the Past",
+            name: "Pit of Heresy",
             value: Dungeons["Pit of Heresy"],
           },
           {
-            name: "Crown of Sorrow",
+            name: "Gras of Avarice",
             value: Dungeons["Grasp of Avarice"],
           },
           {
-            name: "Garden of Salvation",
+            name: "Duality",
             value: Dungeons["Duality"],
           }
         );

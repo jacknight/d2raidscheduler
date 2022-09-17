@@ -26,19 +26,9 @@ const onReady = async (client: Client) => {
 
   await client.guilds.fetch();
   client.guilds.cache.forEach(async (guild) => await guild.members.fetch());
-  if (client.application?.id !== "1019624674155581532") {
-    await rest.put(Routes.applicationCommands(client.application!.id), {
-      body: commandData,
-    });
-  } else {
-    await rest.put(
-      Routes.applicationGuildCommands(
-        client.application!.id,
-        "976258999009804308"
-      ),
-      { body: commandData }
-    );
-  }
+  await rest.put(Routes.applicationCommands(client.application!.id), {
+    body: commandData,
+  });
 
   console.log("Commands registered. Bot is ready.");
 };
