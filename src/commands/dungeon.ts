@@ -49,7 +49,7 @@ const dungeonCommand: CommandInterface = {
             value: Dungeons["Pit of Heresy"],
           },
           {
-            name: "Gras of Avarice",
+            name: "Grasp of Avarice",
             value: Dungeons["Grasp of Avarice"],
           },
           {
