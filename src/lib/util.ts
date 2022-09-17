@@ -84,7 +84,7 @@ export const createDungeonEmbed = (
 ): MessageEmbed => {
   const guardiansNeeded = Math.max(
     0,
-    6 - dungeonData.players.yes.length - dungeonData.players.reserve.length
+    3 - dungeonData.players.yes.length - dungeonData.players.reserve.length
   ).toString();
 
   const embed = new MessageEmbed()
@@ -175,6 +175,6 @@ export const createDungeonDescription = (
     dungeonData.players.reserve.length
   }** / MAYBES: **${dungeonData.players.maybe.length}**\nNEEDED: **${Math.max(
     0,
-    6 - (dungeonData.players.yes.length + dungeonData.players.reserve.length)
+    3 - (dungeonData.players.yes.length + dungeonData.players.reserve.length)
   )}**\nRegister here: ${url}`;
 };

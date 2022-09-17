@@ -254,7 +254,7 @@ const dungeonCommand: CommandInterface = {
 
         // If they answered 'yes', check if there's any space left on the dungeon
         // squad and if not, add them to 'reserve'
-        if (resp === "yes" && dungeonData.players.yes.length >= 6) {
+        if (resp === "yes" && dungeonData.players.yes.length >= 3) {
           dungeonData.players.reserve.push(interaction.user.id);
         } else {
           dungeonData.players[resp].push(interaction.user.id);
