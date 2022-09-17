@@ -10,71 +10,51 @@ import {
 } from "discord.js";
 import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
-import RaidModel, { RaidModelInterface } from "../db/models/RaidModel";
 import shortUUID from "short-uuid";
-import { createRaidDescription, createRaidEmbed } from "../lib/util";
+import { createDungeonDescription, createDungeonEmbed } from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
+import DungeonModel, { DungeonModelInterface } from "../db/models/DungeonModel";
 
-export enum Raids {
-  "Leviathan",
-  "Last Wish",
-  "Scourge of the Past",
-  "Crown of Sorrow",
-  "Garden of Salvation",
-  "Deep Stone Crypt",
-  "Vault of Glass",
-  "Vow of the Disciple",
-  "Kings Fall",
+export enum Dungeons {
+  "Shattered Throne",
+  "Pit of Heresy",
+  "Prophecy",
+  "Grasp of Avarice",
+  "Duality",
 }
 
-const commandName = "raid";
+const commandName = "dungeon";
 
-const raidCommand: CommandInterface = {
+const dungeonCommand: CommandInterface = {
   data: new SlashCommandBuilder()
     .setName(commandName)
-    .setDescription("Schedule a raid")
+    .setDescription("Schedule a dungeon")
     .addIntegerOption((option) => {
       return option
         .setName("name")
-        .setDescription("Raid")
+        .setDescription("Dungeon")
         .setRequired(true)
         .addChoices(
           {
             name: "Leviathan",
-            value: Raids["Leviathan"],
+            value: Dungeons["Shattered Throne"],
           },
           {
             name: "Last Wish",
-            value: Raids["Last Wish"],
+            value: Dungeons["Prophecy"],
           },
           {
             name: "Scourge of the Past",
-            value: Raids["Scourge of the Past"],
+            value: Dungeons["Pit of Heresy"],
           },
           {
             name: "Crown of Sorrow",
-            value: Raids["Scourge of the Past"],
+            value: Dungeons["Grasp of Avarice"],
           },
           {
             name: "Garden of Salvation",
-            value: Raids["Garden of Salvation"],
-          },
-          {
-            name: "Deep Stone Crypt",
-            value: Raids["Deep Stone Crypt"],
-          },
-          {
-            name: "Vault of Glass",
-            value: Raids["Vault of Glass"],
-          },
-          {
-            name: "Vow of the Disciple",
-            value: Raids["Vow of the Disciple"],
-          },
-          {
-            name: "Kings Fall",
-            value: Raids["Kings Fall"],
+            value: Dungeons["Duality"],
           }
         );
     })
@@ -146,7 +126,7 @@ const raidCommand: CommandInterface = {
       })) as Message;
       const today = new Date();
 
-      const raid = interaction.options.getInteger("name", true);
+      const dungeon = interaction.options.getInteger("name", true);
       const year = interaction.options.getInteger("year", true);
       const month = interaction.options.getInteger("month", true) + 1;
       const day = interaction.options.getInteger("day", true);
@@ -154,35 +134,35 @@ const raidCommand: CommandInterface = {
       const minute = interaction.options.getInteger("min", true);
       const zone = interaction.options.getString("timezone", true);
 
-      const raidDate = DateTime.fromObject(
+      const dungeonDate = DateTime.fromObject(
         { year, month, day, hour, minute },
         { zone }
       ).toJSDate();
 
-      const raidDateStr = raidDate.toLocaleString("en-us", {
+      const dungeonDateStr = dungeonDate.toLocaleString("en-us", {
         dateStyle: "full",
         timeStyle: "full",
         timeZone: zone,
       });
 
-      if (raidDate.toString() === "Invalid Date") {
+      if (dungeonDate.toString() === "Invalid Date") {
         return interaction.editReply({
           content: "Invalid date.",
         });
       }
 
-      if (raidDate < new Date()) {
+      if (dungeonDate < new Date()) {
         return interaction.editReply({
-          content: `Date is in the past: ${raidDateStr}`,
+          content: `Date is in the past: ${dungeonDateStr}`,
         });
       }
 
-      const raidData: RaidModelInterface = {
+      const dungeonData: DungeonModelInterface = {
         id: shortUUID.generate(),
-        date: raidDate,
+        date: dungeonDate,
         zone,
-        raid,
-        raiders: {
+        dungeon,
+        players: {
           yes: [],
           no: [],
           maybe: [],
@@ -197,42 +177,42 @@ const raidCommand: CommandInterface = {
       };
 
       const scheduledEvent = await interaction.guild?.scheduledEvents.create({
-        name: `${Raids[raid]} Raid`,
+        name: `${Dungeons[dungeon]} Run`,
         entityType: "VOICE",
         privacyLevel: "GUILD_ONLY",
-        scheduledStartTime: raidDate,
-        description: createRaidDescription(raidData, msg.url),
+        scheduledStartTime: dungeonDate,
+        description: createDungeonDescription(dungeonData, msg.url),
         channel: interaction.guild?.channels.cache.find(
           (channel) => channel.type === "GUILD_VOICE"
         ) as VoiceChannel,
       });
 
-      raidData.scheduledEventId = scheduledEvent!.id;
+      dungeonData.scheduledEventId = scheduledEvent!.id;
 
-      await RaidModel.create(raidData);
+      await DungeonModel.create(dungeonData);
 
-      const raidEmbed = createRaidEmbed(raidData);
+      const dungeonEmbed = createDungeonEmbed(dungeonData);
 
       const respond = new MessageActionRow().addComponents(
         new MessageButton()
-          .setCustomId(`${commandName}-${raidData.id}-yes`)
+          .setCustomId(`${commandName}-${dungeonData.id}-yes`)
           .setLabel("I'm in!")
           .setStyle("SUCCESS"),
         new MessageButton()
-          .setCustomId(`${commandName}-${raidData.id}-reserve`)
+          .setCustomId(`${commandName}-${dungeonData.id}-reserve`)
           .setLabel("Available on reserve.")
           .setStyle("SECONDARY"),
         new MessageButton()
-          .setCustomId(`${commandName}-${raidData.id}-maybe`)
+          .setCustomId(`${commandName}-${dungeonData.id}-maybe`)
           .setLabel("Maybe")
           .setStyle("PRIMARY"),
         new MessageButton()
-          .setCustomId(`${commandName}-${raidData.id}-no`)
+          .setCustomId(`${commandName}-${dungeonData.id}-no`)
           .setLabel("I'm out.")
           .setStyle("DANGER")
       );
       interaction.editReply({
-        embeds: [raidEmbed],
+        embeds: [dungeonEmbed],
         components: [respond],
       });
     } catch (e: any) {
@@ -242,59 +222,62 @@ const raidCommand: CommandInterface = {
 
   handleButton: async (interaction: ButtonInteraction) => {
     try {
-      const raidId: string = interaction.customId.split("-")[1];
+      const dungeonId: string = interaction.customId.split("-")[1];
       const resp = interaction.customId.split("-")[2] as ScheduledEventResponse;
 
       await interaction.deferReply({ ephemeral: true, fetchReply: true });
 
-      // Retrieve raid from database
-      const raidData: RaidModelInterface | null = await RaidModel.findOne({
-        id: raidId,
-      });
+      // Retrieve dungeon from database
+      const dungeonData: DungeonModelInterface | null =
+        await DungeonModel.findOne({
+          id: dungeonId,
+        });
 
-      if (raidData) {
+      if (dungeonData) {
         // First check if they've already hit a button
-        let idx = raidData.raiders.yes.indexOf(interaction.user.id);
+        let idx = dungeonData.players.yes.indexOf(interaction.user.id);
         if (idx >= 0) {
-          raidData.raiders.yes.splice(idx, 1);
+          dungeonData.players.yes.splice(idx, 1);
         }
-        idx = raidData.raiders.no.indexOf(interaction.user.id);
+        idx = dungeonData.players.no.indexOf(interaction.user.id);
         if (idx >= 0) {
-          raidData.raiders.no.splice(idx, 1);
+          dungeonData.players.no.splice(idx, 1);
         }
-        idx = raidData.raiders.maybe.indexOf(interaction.user.id);
+        idx = dungeonData.players.maybe.indexOf(interaction.user.id);
         if (idx >= 0) {
-          raidData.raiders.maybe.splice(idx, 1);
+          dungeonData.players.maybe.splice(idx, 1);
         }
-        idx = raidData.raiders.reserve.indexOf(interaction.user.id);
+        idx = dungeonData.players.reserve.indexOf(interaction.user.id);
         if (idx >= 0) {
-          raidData.raiders.reserve.splice(idx, 1);
+          dungeonData.players.reserve.splice(idx, 1);
         }
 
-        // If they answered 'yes', check if there's any space left on the raid
+        // If they answered 'yes', check if there's any space left on the dungeon
         // squad and if not, add them to 'reserve'
-        if (resp === "yes" && raidData.raiders.yes.length >= 6) {
-          raidData.raiders.reserve.push(interaction.user.id);
+        if (resp === "yes" && dungeonData.players.yes.length >= 6) {
+          dungeonData.players.reserve.push(interaction.user.id);
         } else {
-          raidData.raiders[resp].push(interaction.user.id);
+          dungeonData.players[resp].push(interaction.user.id);
         }
 
-        await RaidModel.updateOne({ id: raidId }, raidData);
+        await DungeonModel.updateOne({ id: dungeonId }, dungeonData);
 
-        const guild = client.guilds.cache.get(raidData.guildId);
+        const guild = client.guilds.cache.get(dungeonData.guildId);
         const channel = guild?.channels.cache.get(
-          raidData.channelId
+          dungeonData.channelId
         ) as TextBasedChannel;
-        const msg = channel.messages.cache.get(raidData.messageId);
+        const msg = channel.messages.cache.get(dungeonData.messageId);
 
-        msg?.edit({ embeds: [createRaidEmbed(raidData)] });
+        msg?.edit({ embeds: [createDungeonEmbed(dungeonData)] });
 
         const scheduledEvents = await guild?.scheduledEvents.fetch();
-        const scheduledEvent = scheduledEvents?.get(raidData.scheduledEventId);
+        const scheduledEvent = scheduledEvents?.get(
+          dungeonData.scheduledEventId
+        );
 
         if (scheduledEvent) {
           scheduledEvent.edit({
-            description: createRaidDescription(raidData, msg!.url),
+            description: createDungeonDescription(dungeonData, msg!.url),
           });
         }
 
@@ -302,7 +285,7 @@ const raidCommand: CommandInterface = {
           content: "Your selection has been confirmed!",
         });
       } else {
-        console.error("No raid data? ", raidData, raidId);
+        console.error("No dungeon data? ", dungeonData, dungeonId);
         return interaction.editReply({
           content: "Sorry, there was some problem.",
         });
@@ -316,4 +299,4 @@ const raidCommand: CommandInterface = {
   },
 };
 
-export default raidCommand;
+export default dungeonCommand;

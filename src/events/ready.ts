@@ -18,7 +18,7 @@ const onReady = async (client: Client) => {
     });
   });
 
-  Promise.all(promises);
+  await Promise.all(promises);
 
   console.log(
     "Global and guild commands deleted. Registering most recent version."
@@ -26,9 +26,19 @@ const onReady = async (client: Client) => {
 
   await client.guilds.fetch();
   client.guilds.cache.forEach(async (guild) => await guild.members.fetch());
-  await rest.put(Routes.applicationCommands(client.application!.id), {
-    body: commandData,
-  });
+  if (client.application?.id !== "1019624674155581532") {
+    await rest.put(Routes.applicationCommands(client.application!.id), {
+      body: commandData,
+    });
+  } else {
+    await rest.put(
+      Routes.applicationGuildCommands(
+        client.application!.id,
+        "976258999009804308"
+      ),
+      { body: commandData }
+    );
+  }
 
   console.log("Commands registered. Bot is ready.");
 };
