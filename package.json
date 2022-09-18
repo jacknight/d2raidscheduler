@@ -2,7 +2,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./prod/index.js",
-    "cold": "yarn build && yarn start"
+    "cold": "yarn build && yarn start",
+    "dev": "nodemon --watch yarn cold"
   },
   "dependencies": {
     "@discordjs/builders": "^0.13.0",

@@ -19,6 +19,8 @@ import {
 } from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
+import { readFile, readFileSync } from "fs";
+import path from "path";
 
 export enum Raids {
   "Leviathan",
@@ -200,8 +202,16 @@ const raidCommand: CommandInterface = {
         scheduledEventId: "",
       };
 
+      const image = `https://raw.githubusercontent.com/jacknight/d2raidscheduler/master/src/assets/${Raids[
+        raid
+      ]
+        .split(" ")
+        .join("_")
+        .toLowerCase()}_banner.png`;
+      console.log(image);
       const scheduledEvent = await interaction.guild?.scheduledEvents.create({
         name: `${Raids[raid]} Raid`,
+        image,
         entityType: "VOICE",
         privacyLevel: "GUILD_ONLY",
         scheduledStartTime: raidDate,
