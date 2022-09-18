@@ -222,17 +222,23 @@ export const scheduleEventTimeouts = async (
         const message = await (
           await channel.messages.fetch()
         ).find((m) => m.id === data.messageId);
-        await Promise.all(
-          players.yes.map(async (player) => {
+        players.yes.map((player) => {
+          const user = guild?.members.cache.get(player);
+          if (user) {
+            content = `${content}, ${user}`;
+          }
+        });
+        content = `${content}: it's almost time to run ${name}!`;
+
+        if (players.yes.length < (type === "raid" ? 6 : 3)) {
+          content = `${content}\nAnd you`;
+          players.reserve.map((player) => {
             const user = guild?.members.cache.get(player);
-            if (user) {
-              content = `${content}, ${user}`;
-            }
-          })
-        );
-        content = `${content}: it's almost time to run ${name}!\n${
-          message?.url || ""
-        }`;
+            content = `${content}, ${user}`;
+          });
+          content = `${content}: we need you!`;
+        }
+        content = `${content}\n${message?.url || ""}`;
 
         await message?.reply({ content });
       },
