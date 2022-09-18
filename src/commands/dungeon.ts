@@ -181,8 +181,16 @@ const dungeonCommand: CommandInterface = {
         scheduledEventId: "",
       };
 
+      const image = `https://raw.githubusercontent.com/jacknight/d2raidscheduler/master/src/assets/${Dungeons[
+        dungeon
+      ]
+        .split(" ")
+        .join("_")
+        .toLowerCase()}_banner.png`;
+
       const scheduledEvent = await interaction.guild?.scheduledEvents.create({
         name: `${Dungeons[dungeon]} Run`,
+        image,
         entityType: "VOICE",
         privacyLevel: "GUILD_ONLY",
         scheduledStartTime: dungeonDate,

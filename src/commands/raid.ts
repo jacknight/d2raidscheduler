@@ -208,7 +208,6 @@ const raidCommand: CommandInterface = {
         .split(" ")
         .join("_")
         .toLowerCase()}_banner.png`;
-      console.log(image);
       const scheduledEvent = await interaction.guild?.scheduledEvents.create({
         name: `${Raids[raid]} Raid`,
         image,
