@@ -12,15 +12,9 @@ import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
 import RaidModel, { RaidModelInterface } from "../db/models/RaidModel";
 import shortUUID from "short-uuid";
-import {
-  createRaidDescription,
-  createRaidEmbed,
-  scheduleEventTimeouts,
-} from "../lib/util";
+import { createRaidDescription, createRaidEmbed, scheduleEventTimeouts } from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
-import { readFile, readFileSync } from "fs";
-import path from "path";
 
 export enum Raids {
   "Leviathan",
@@ -32,6 +26,7 @@ export enum Raids {
   "Vault of Glass",
   "Vow of the Disciple",
   "Kings Fall",
+  "Root of Nightmares",
 }
 
 const commandName = "raid";
@@ -41,48 +36,48 @@ const raidCommand: CommandInterface = {
     .setName(commandName)
     .setDescription("Schedule a raid")
     .addIntegerOption((option) => {
-      return option
-        .setName("name")
-        .setDescription("Raid")
-        .setRequired(true)
-        .addChoices(
-          {
-            name: "Leviathan",
-            value: Raids["Leviathan"],
-          },
-          {
-            name: "Last Wish",
-            value: Raids["Last Wish"],
-          },
-          {
-            name: "Scourge of the Past",
-            value: Raids["Scourge of the Past"],
-          },
-          {
-            name: "Crown of Sorrow",
-            value: Raids["Scourge of the Past"],
-          },
-          {
-            name: "Garden of Salvation",
-            value: Raids["Garden of Salvation"],
-          },
-          {
-            name: "Deep Stone Crypt",
-            value: Raids["Deep Stone Crypt"],
-          },
-          {
-            name: "Vault of Glass",
-            value: Raids["Vault of Glass"],
-          },
-          {
-            name: "Vow of the Disciple",
-            value: Raids["Vow of the Disciple"],
-          },
-          {
-            name: "Kings Fall",
-            value: Raids["Kings Fall"],
-          }
-        );
+      return option.setName("name").setDescription("Raid").setRequired(true).addChoices(
+        {
+          name: "Leviathan",
+          value: Raids["Leviathan"],
+        },
+        {
+          name: "Last Wish",
+          value: Raids["Last Wish"],
+        },
+        {
+          name: "Scourge of the Past",
+          value: Raids["Scourge of the Past"],
+        },
+        {
+          name: "Crown of Sorrow",
+          value: Raids["Scourge of the Past"],
+        },
+        {
+          name: "Garden of Salvation",
+          value: Raids["Garden of Salvation"],
+        },
+        {
+          name: "Deep Stone Crypt",
+          value: Raids["Deep Stone Crypt"],
+        },
+        {
+          name: "Vault of Glass",
+          value: Raids["Vault of Glass"],
+        },
+        {
+          name: "Vow of the Disciple",
+          value: Raids["Vow of the Disciple"],
+        },
+        {
+          name: "Kings Fall",
+          value: Raids["Kings Fall"],
+        },
+        {
+          name: "Root of Nightmares",
+          value: Raids["Root of Nightmares"],
+        }
+      );
     })
     .addIntegerOption((option) => {
       return option
@@ -124,10 +119,7 @@ const raidCommand: CommandInterface = {
       return option.setName("day").setDescription("Day").setRequired(true);
     })
     .addIntegerOption((option) => {
-      return option
-        .setName("hour")
-        .setDescription("Hour (24h time)")
-        .setRequired(true);
+      return option.setName("hour").setDescription("Hour (24h time)").setRequired(true);
     })
     .addIntegerOption((option) => {
       return option.setName("min").setDescription("Minute").setRequired(true);
@@ -160,10 +152,7 @@ const raidCommand: CommandInterface = {
       const minute = interaction.options.getInteger("min", true);
       const zone = interaction.options.getString("timezone", true);
 
-      const raidDate = DateTime.fromObject(
-        { year, month, day, hour, minute },
-        { zone }
-      ).toJSDate();
+      const raidDate = DateTime.fromObject({ year, month, day, hour, minute }, { zone }).toJSDate();
 
       const raidDateStr = raidDate.toLocaleString("en-us", {
         dateStyle: "full",
@@ -297,9 +286,7 @@ const raidCommand: CommandInterface = {
         await RaidModel.updateOne({ id: raidId }, raidData);
 
         const guild = client.guilds.cache.get(raidData.guildId);
-        const channel = guild?.channels.cache.get(
-          raidData.channelId
-        ) as TextBasedChannel;
+        const channel = guild?.channels.cache.get(raidData.channelId) as TextBasedChannel;
         const msg = channel.messages.cache.get(raidData.messageId);
 
         msg?.edit({ embeds: [createRaidEmbed(raidData)] });
