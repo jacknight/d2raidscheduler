@@ -12,11 +12,7 @@ import {
 import { CommandInterface } from "../interfaces/command";
 import { DateTime } from "luxon";
 import shortUUID from "short-uuid";
-import {
-  createDungeonDescription,
-  createDungeonEmbed,
-  scheduleEventTimeouts,
-} from "../lib/util";
+import { createDungeonDescription, createDungeonEmbed, scheduleEventTimeouts } from "../lib/util";
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
 import DungeonModel, { DungeonModelInterface } from "../db/models/DungeonModel";
@@ -27,6 +23,8 @@ export enum Dungeons {
   "Prophecy",
   "Grasp of Avarice",
   "Duality",
+  "Spire of the Watcher",
+  "Ghosts of the Deep",
 }
 
 const commandName = "dungeon";
@@ -36,32 +34,36 @@ const dungeonCommand: CommandInterface = {
     .setName(commandName)
     .setDescription("Schedule a dungeon")
     .addIntegerOption((option) => {
-      return option
-        .setName("name")
-        .setDescription("Dungeon")
-        .setRequired(true)
-        .addChoices(
-          {
-            name: "Shattered Throne",
-            value: Dungeons["Shattered Throne"],
-          },
-          {
-            name: "Prophecy",
-            value: Dungeons["Prophecy"],
-          },
-          {
-            name: "Pit of Heresy",
-            value: Dungeons["Pit of Heresy"],
-          },
-          {
-            name: "Grasp of Avarice",
-            value: Dungeons["Grasp of Avarice"],
-          },
-          {
-            name: "Duality",
-            value: Dungeons["Duality"],
-          }
-        );
+      return option.setName("name").setDescription("Dungeon").setRequired(true).addChoices(
+        {
+          name: "Shattered Throne",
+          value: Dungeons["Shattered Throne"],
+        },
+        {
+          name: "Prophecy",
+          value: Dungeons["Prophecy"],
+        },
+        {
+          name: "Pit of Heresy",
+          value: Dungeons["Pit of Heresy"],
+        },
+        {
+          name: "Grasp of Avarice",
+          value: Dungeons["Grasp of Avarice"],
+        },
+        {
+          name: "Duality",
+          value: Dungeons["Duality"],
+        },
+        {
+          name: "Spire of the Watcher",
+          value: Dungeons["Spire of the Watcher"],
+        },
+        {
+          name: "Ghosts of the Deep",
+          value: Dungeons["Ghosts of the Deep"],
+        }
+      );
     })
     .addIntegerOption((option) => {
       return option
@@ -103,10 +105,7 @@ const dungeonCommand: CommandInterface = {
       return option.setName("day").setDescription("Day").setRequired(true);
     })
     .addIntegerOption((option) => {
-      return option
-        .setName("hour")
-        .setDescription("Hour (24h time)")
-        .setRequired(true);
+      return option.setName("hour").setDescription("Hour (24h time)").setRequired(true);
     })
     .addIntegerOption((option) => {
       return option.setName("min").setDescription("Minute").setRequired(true);
@@ -243,10 +242,9 @@ const dungeonCommand: CommandInterface = {
       await interaction.deferReply({ ephemeral: true, fetchReply: true });
 
       // Retrieve dungeon from database
-      const dungeonData: DungeonModelInterface | null =
-        await DungeonModel.findOne({
-          id: dungeonId,
-        });
+      const dungeonData: DungeonModelInterface | null = await DungeonModel.findOne({
+        id: dungeonId,
+      });
 
       if (dungeonData) {
         // First check if they've already hit a button
@@ -278,17 +276,13 @@ const dungeonCommand: CommandInterface = {
         await DungeonModel.updateOne({ id: dungeonId }, dungeonData);
 
         const guild = client.guilds.cache.get(dungeonData.guildId);
-        const channel = guild?.channels.cache.get(
-          dungeonData.channelId
-        ) as TextBasedChannel;
+        const channel = guild?.channels.cache.get(dungeonData.channelId) as TextBasedChannel;
         const msg = channel.messages.cache.get(dungeonData.messageId);
 
         msg?.edit({ embeds: [createDungeonEmbed(dungeonData)] });
 
         const scheduledEvents = await guild?.scheduledEvents.fetch();
-        const scheduledEvent = scheduledEvents?.get(
-          dungeonData.scheduledEventId
-        );
+        const scheduledEvent = scheduledEvents?.get(dungeonData.scheduledEventId);
 
         if (scheduledEvent) {
           scheduledEvent.edit({
