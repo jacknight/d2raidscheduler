@@ -83,9 +83,7 @@ export const createRaidEmbed = (raidData: RaidModelInterface): MessageEmbed => {
   return embed;
 };
 
-export const createDungeonEmbed = (
-  dungeonData: DungeonModelInterface
-): MessageEmbed => {
+export const createDungeonEmbed = (dungeonData: DungeonModelInterface): MessageEmbed => {
   const guardiansNeeded = Math.max(
     0,
     3 - dungeonData.players.yes.length - dungeonData.players.reserve.length
@@ -159,10 +157,7 @@ export const createDungeonEmbed = (
   return embed;
 };
 
-export const createRaidDescription = (
-  raidData: RaidModelInterface,
-  url: string
-) => {
+export const createRaidDescription = (raidData: RaidModelInterface, url: string) => {
   return `CONFIRMED: **${raidData.raiders.yes.length}** / RESERVES: **${
     raidData.raiders.reserve.length
   }** / MAYBES: **${raidData.raiders.maybe.length}**\nNEEDED: **${Math.max(
@@ -171,10 +166,7 @@ export const createRaidDescription = (
   )}**\nRegister here: ${url}`;
 };
 
-export const createDungeonDescription = (
-  dungeonData: DungeonModelInterface,
-  url: string
-) => {
+export const createDungeonDescription = (dungeonData: DungeonModelInterface, url: string) => {
   return `CONFIRMED: **${dungeonData.players.yes.length}** / RESERVES: **${
     dungeonData.players.reserve.length
   }** / MAYBES: **${dungeonData.players.maybe.length}**\nNEEDED: **${Math.max(
@@ -183,45 +175,37 @@ export const createDungeonDescription = (
   )}**\nRegister here: ${url}`;
 };
 
-export const scheduleEventTimeouts = async (
-  id: string,
-  type: "raid" | "dungeon"
-) => {
+export const scheduleEventTimeouts = async (id: string, type: "raid" | "dungeon") => {
   const data: (RaidModelInterface & DungeonModelInterface) | null =
-    type === "raid"
-      ? await RaidModel.findOne({ id })
-      : await DungeonModel.findOne({ id });
+    type === "raid" ? await RaidModel.findOne({ id }) : await DungeonModel.findOne({ id });
 
   if (!data) return;
 
-  const fifteenMinBefore =
-    data.date.valueOf() - Date.now().valueOf() - 15 * 60 * 1000;
+  if (data.date.valueOf() > 1000 * 60 * 60 * 24 * 24) {
+    // More than twenty four days in the future or you'll overflow the timer
+    return;
+  }
+
+  const fifteenMinBefore = data.date.valueOf() - Date.now().valueOf() - 15 * 60 * 1000;
 
   (function (id, type) {
     if (fifteenMinBefore < 0) return;
     setTimeout(
       async () => {
         const data: (RaidModelInterface & DungeonModelInterface) | null =
-          type === "raid"
-            ? await RaidModel.findOne({ id })
-            : await DungeonModel.findOne({ id });
+          type === "raid" ? await RaidModel.findOne({ id }) : await DungeonModel.findOne({ id });
 
         if (!data) return;
 
         const { date, guildId } = data;
         const players = type === "raid" ? data.raiders : data.players;
-        const name =
-          type === "raid" ? Raids[data.raid] : Dungeons[data.dungeon];
+        const name = type === "raid" ? Raids[data.raid] : Dungeons[data.dungeon];
 
         let content = "Hey";
 
         const guild = client.guilds.cache.get(data.guildId);
-        const channel = guild?.channels.cache.get(
-          data.channelId
-        ) as TextBasedChannel;
-        const message = await (
-          await channel.messages.fetch()
-        ).find((m) => m.id === data.messageId);
+        const channel = guild?.channels.cache.get(data.channelId) as TextBasedChannel;
+        const message = await (await channel.messages.fetch()).find((m) => m.id === data.messageId);
         players.yes.map((player) => {
           const user = guild?.members.cache.get(player);
           if (user) {
@@ -230,7 +214,7 @@ export const scheduleEventTimeouts = async (
         });
         content = `${content}: it's almost time to run ${name}!`;
 
-        if (players.yes.length < (type === "raid" ? 6 : 3)) {
+        if (players.yes.length < (type === "raid" ? 6 : 3) && players.reserve.length > 0) {
           content = `${content}\nAnd you`;
           players.reserve.map((player) => {
             const user = guild?.members.cache.get(player);
@@ -249,16 +233,12 @@ export const scheduleEventTimeouts = async (
   (function (id, type) {
     setTimeout(async () => {
       const data: (RaidModelInterface & DungeonModelInterface) | null =
-        type === "raid"
-          ? await RaidModel.findOne({ id })
-          : await DungeonModel.findOne({ id });
+        type === "raid" ? await RaidModel.findOne({ id }) : await DungeonModel.findOne({ id });
 
       if (!data) return;
 
       const guild = client.guilds.cache.get(data.guildId);
-      const scheduledEvent = guild?.scheduledEvents.cache.get(
-        data.scheduledEventId
-      );
+      const scheduledEvent = guild?.scheduledEvents.cache.get(data.scheduledEventId);
       await scheduledEvent?.edit({
         status: GuildScheduledEventStatuses.ACTIVE,
       });
