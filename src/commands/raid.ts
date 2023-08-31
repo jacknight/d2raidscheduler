@@ -16,7 +16,7 @@ import { createRaidDescription, createRaidEmbed, scheduleEventTimeouts } from ".
 import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
 
-export enum Raids {
+export const Raids = [
   "Leviathan",
   "Last Wish",
   "Scourge of the Past",
@@ -27,57 +27,25 @@ export enum Raids {
   "Vow of the Disciple",
   "Kings Fall",
   "Root of Nightmares",
-}
+  "Crota's End",
+];
 
 const commandName = "raid";
+
+console.log(...Raids.map((value: string, index: number) => ({ name: value, value: index })));
 
 const raidCommand: CommandInterface = {
   data: new SlashCommandBuilder()
     .setName(commandName)
     .setDescription("Schedule a raid")
     .addIntegerOption((option) => {
-      return option.setName("name").setDescription("Raid").setRequired(true).addChoices(
-        {
-          name: "Leviathan",
-          value: Raids["Leviathan"],
-        },
-        {
-          name: "Last Wish",
-          value: Raids["Last Wish"],
-        },
-        {
-          name: "Scourge of the Past",
-          value: Raids["Scourge of the Past"],
-        },
-        {
-          name: "Crown of Sorrow",
-          value: Raids["Scourge of the Past"],
-        },
-        {
-          name: "Garden of Salvation",
-          value: Raids["Garden of Salvation"],
-        },
-        {
-          name: "Deep Stone Crypt",
-          value: Raids["Deep Stone Crypt"],
-        },
-        {
-          name: "Vault of Glass",
-          value: Raids["Vault of Glass"],
-        },
-        {
-          name: "Vow of the Disciple",
-          value: Raids["Vow of the Disciple"],
-        },
-        {
-          name: "Kings Fall",
-          value: Raids["Kings Fall"],
-        },
-        {
-          name: "Root of Nightmares",
-          value: Raids["Root of Nightmares"],
-        }
-      );
+      return option
+        .setName("name")
+        .setDescription("Raid")
+        .setRequired(true)
+        .addChoices(
+          ...Raids.map((value: string, index: number) => ({ name: value, value: index }))
+        );
     })
     .addIntegerOption((option) => {
       return option
@@ -194,9 +162,10 @@ const raidCommand: CommandInterface = {
       const image = `https://raw.githubusercontent.com/jacknight/d2raidscheduler/master/src/assets/${Raids[
         raid
       ]
-        .split(" ")
+        .split(/[ ']/)
         .join("_")
         .toLowerCase()}_banner.png`;
+      console.log(image);
       const scheduledEvent = await interaction.guild?.scheduledEvents.create({
         name: `${Raids[raid]} Raid`,
         image,

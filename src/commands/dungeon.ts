@@ -17,7 +17,7 @@ import client from "../lib/client";
 import { ScheduledEventResponse } from "../lib/types";
 import DungeonModel, { DungeonModelInterface } from "../db/models/DungeonModel";
 
-export enum Dungeons {
+export const Dungeons = [
   "Shattered Throne",
   "Pit of Heresy",
   "Prophecy",
@@ -25,45 +25,21 @@ export enum Dungeons {
   "Duality",
   "Spire of the Watcher",
   "Ghosts of the Deep",
-}
+];
 
 const commandName = "dungeon";
-
 const dungeonCommand: CommandInterface = {
   data: new SlashCommandBuilder()
     .setName(commandName)
     .setDescription("Schedule a dungeon")
     .addIntegerOption((option) => {
-      return option.setName("name").setDescription("Dungeon").setRequired(true).addChoices(
-        {
-          name: "Shattered Throne",
-          value: Dungeons["Shattered Throne"],
-        },
-        {
-          name: "Prophecy",
-          value: Dungeons["Prophecy"],
-        },
-        {
-          name: "Pit of Heresy",
-          value: Dungeons["Pit of Heresy"],
-        },
-        {
-          name: "Grasp of Avarice",
-          value: Dungeons["Grasp of Avarice"],
-        },
-        {
-          name: "Duality",
-          value: Dungeons["Duality"],
-        },
-        {
-          name: "Spire of the Watcher",
-          value: Dungeons["Spire of the Watcher"],
-        },
-        {
-          name: "Ghosts of the Deep",
-          value: Dungeons["Ghosts of the Deep"],
-        }
-      );
+      return option
+        .setName("name")
+        .setDescription("Dungeon")
+        .setRequired(true)
+        .addChoices(
+          ...Dungeons.map((value: string, index: number) => ({ name: value, value: index }))
+        );
     })
     .addIntegerOption((option) => {
       return option
@@ -183,7 +159,7 @@ const dungeonCommand: CommandInterface = {
       const image = `https://raw.githubusercontent.com/jacknight/d2raidscheduler/master/src/assets/${Dungeons[
         dungeon
       ]
-        .split(" ")
+        .split(/[ ']/)
         .join("_")
         .toLowerCase()}_banner.png`;
 
@@ -214,7 +190,7 @@ const dungeonCommand: CommandInterface = {
           .setStyle("SUCCESS"),
         new MessageButton()
           .setCustomId(`${commandName}-${dungeonData.id}-reserve`)
-          .setLabel("Available on reserve.")
+          .setLabel("Reserve team")
           .setStyle("SECONDARY"),
         new MessageButton()
           .setCustomId(`${commandName}-${dungeonData.id}-maybe`)
@@ -222,7 +198,7 @@ const dungeonCommand: CommandInterface = {
           .setStyle("PRIMARY"),
         new MessageButton()
           .setCustomId(`${commandName}-${dungeonData.id}-no`)
-          .setLabel("I'm out.")
+          .setLabel("I'm out")
           .setStyle("DANGER")
       );
       interaction.editReply({
